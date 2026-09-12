@@ -1,0 +1,18 @@
+# Dependencias Node.js
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache e artefatos locais
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.tmp
+.antigravity/
+
+# Ambiente
+.env
+.env.*
