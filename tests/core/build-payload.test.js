@@ -19,7 +19,9 @@ const assert = require('assert');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
-const TEMPLATE_PATH = path.resolve(__dirname, '../../Modelo sem título.tpl');
+const TEMPLATE_PATH = fs.existsSync(path.resolve(__dirname, '../../template.tpl'))
+  ? path.resolve(__dirname, '../../template.tpl')
+  : path.resolve(__dirname, '../../Modelo sem título.tpl');
 const SCHEMA_PATH = path.resolve(__dirname, '../../schemas/appsflyer-s2s-v3.schema.json');
 const AF_ID = '1617274484000-5786735';
 const VALID_UUID = 'EA7583CD-A667-48BC-B806-42ECB2B48D12';

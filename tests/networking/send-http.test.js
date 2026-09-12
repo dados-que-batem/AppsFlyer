@@ -17,7 +17,9 @@ const path = require('path');
 const vm = require('vm');
 const assert = require('assert');
 
-const TEMPLATE_PATH = path.resolve(__dirname, '../../Modelo sem título.tpl');
+const TEMPLATE_PATH = fs.existsSync(path.resolve(__dirname, '../../template.tpl'))
+  ? path.resolve(__dirname, '../../template.tpl')
+  : path.resolve(__dirname, '../../Modelo sem título.tpl');
 const AF_ID = '1617274484000-5786735';
 const VALID_UUID = 'EA7583CD-A667-48BC-B806-42ECB2B48D12';
 const S2S_TOKEN = 'mp_test_s2s_token';
