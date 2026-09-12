@@ -220,6 +220,7 @@ ___SANDBOXED_JS_FOR_SERVER___
 
 // Importações de APIs do Sandboxed JavaScript (sGTM)
 var JSON = require('JSON');
+var encodeUriComponent = require('encodeUriComponent');
 var getAllEventData = require('getAllEventData');
 var getRemoteAddress = require('getRemoteAddress');
 var getRequestHeader = require('getRequestHeader');
@@ -228,6 +229,7 @@ var logToConsole = require('logToConsole');
 var makeNumber = require('makeNumber');
 var makeString = require('makeString');
 var makeTableMap = require('makeTableMap');
+var sendHttpRequest = require('sendHttpRequest');
 
 // ===== Utilitários de normalização (SDLC-3 / SPEC-S2S-V3) =====
 // Literais de regex são proibidos no Sandboxed JS: todas as validações
@@ -596,6 +598,55 @@ function enforcePayloadLimit(payload) {
   return null;
 }
 
+// ===== Camada de egress de rede e tratamento de respostas S2S (SDLC-5) =====
+// Guarda de idempotência: assegura que nem gtmOnSuccess() nem gtmOnFailure()
+// sejam invocados mais de uma vez (runtime sGTM síncrono, callback ou Promise).
+var dispatchCompleted = false;
+
+function completeDispatch(success, isError, diagnostic) {
+  if (dispatchCompleted) {
+    return;
+  }
+  dispatchCompleted = true;
+  if (diagnostic && (isError || data.enableLogging)) {
+    logToConsole((isError ? 'AppsFlyer Tag Error: ' : 'AppsFlyer Tag: ') + diagnostic);
+  }
+  if (success) {
+    data.gtmOnSuccess();
+  } else {
+    data.gtmOnFailure();
+  }
+}
+
+function handleNetworkError() {
+  completeDispatch(false, true, 'Timeout de rede (4000ms excedidos sem resposta remota) ou falha de conexao.');
+}
+
+function handleResponse(statusCode, headers, body) {
+  if (statusCode === undefined || statusCode === null) {
+    completeDispatch(false, true, 'Resposta de rede vazia ou invalida (statusCode ausente).');
+    return;
+  }
+  var status = makeNumber(statusCode);
+  if (isNaN(status)) {
+    completeDispatch(false, true, 'Resposta de rede vazia ou invalida (statusCode invalido).');
+    return;
+  }
+  if (status >= 200 && status <= 299) {
+    completeDispatch(true, false, 'resposta da API AppsFlyer recebida (status ' + status + ').');
+    return;
+  }
+  if (status === 400) {
+    completeDispatch(false, true, 'Falha de autenticacao ou payload malformado (verifique S2S Token e formato do payload) - status 400.');
+  } else if (status === 401) {
+    completeDispatch(false, true, 'Acesso nao autorizado para este Application ID - status 401.');
+  } else if (status === 403) {
+    completeDispatch(false, true, 'Funcionalidade S2S nao habilitada no plano AppsFlyer - status 403.');
+  } else {
+    completeDispatch(false, true, 'Erro interno temporario nos servidores do AppsFlyer - status ' + status + '.');
+  }
+}
+
 // ===== Fluxo principal do Core Engine (SDLC-3) =====
 var eventData = getAllEventData() || {};
 var resolvedPlatform = null;
@@ -724,7 +775,41 @@ if (!data.s2sToken) {
             logToConsole('AppsFlyer Tag: normalizacao concluida (platform=' + resolvedPlatform + ', appId=' + appIdNormalized + ', appsflyer_id=' + appsflyerId + ').');
             logToConsole('AppsFlyer Tag: payload compilado (' + context.payloadBytes + ' bytes).');
           }
-          data.gtmOnSuccess();
+
+          // ===== Despacho HTTP assíncrono para a API S2S v3 (SDLC-5) =====
+          var dispatchUrl = 'https://api3.appsflyer.com/inappevent/' + encodeUriComponent(appIdNormalized);
+          var requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'authentication': makeString(data.s2sToken)
+            },
+            timeout: 4000
+          };
+          var postBody = JSON.stringify(payload);
+          if (data.enableLogging) {
+            logToConsole('AppsFlyer Tag: despachando POST ' + dispatchUrl + ' (' + context.payloadBytes + ' bytes).');
+          }
+
+          try {
+            var responsePromise = sendHttpRequest(dispatchUrl, function (statusCode, headers, body) {
+              handleResponse(statusCode, headers, body);
+            }, requestOptions, postBody);
+            if (responsePromise && getType(responsePromise.then) === 'function') {
+              responsePromise.then(function (result) {
+                if (result && getType(result.statusCode) === 'number') {
+                  handleResponse(result.statusCode, result.headers, result.body);
+                } else {
+                  handleNetworkError();
+                }
+              }).catch(function () {
+                handleNetworkError();
+              });
+            }
+          } catch (err) {
+            handleNetworkError();
+          }
         }
       }
     }
@@ -858,5 +943,5 @@ ___NOTES___
 Criado em 12/09/2026.
 SDLC-2 (Design): estrutura da interface do template (fields/parameters) e governança de permissões.
 SDLC-4 (Core Engine / Issue #4): motor de construção e serialização do payload S2S v3 (eventValue stringified), injeção de metadados de rede/hardware, mapeamento de sharing_filter e régua de salvaguarda de 1024 bytes com poda seletiva e bloqueio preventivo via gtmOnFailure. Payload exportado no contexto para consumo na Issue #5.
-A implementação do despacho assíncrono (sendHttpRequest) pertence à Issue #5.
+SDLC-5 (Core Engine / Issue #5): camada de egress de rede ativa no sandbox — sendHttpRequest para https://api3.appsflyer.com/inappevent/{appId} (POST, Content-Type/Accept application/json, header authentication com o S2S Token, timeout de 4000ms) com suporte a runtime de callback e Promise, guarda de idempotência (dispatchCompleted) e matriz de tratamento de respostas: 2xx → gtmOnSuccess; 400/401/403/5xx e timeout/erro de rede → gtmOnFailure com diagnóstico no log.
 A bateria de testes nativos da aba ___TESTS___ pertence à Issue #6.

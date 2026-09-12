@@ -131,6 +131,13 @@ function runTag(opts) {
     },
     getRemoteAddress: function () {
       return undefined;
+    },
+    encodeUriComponent: function (value) {
+      return encodeURIComponent(String(value));
+    },
+    sendHttpRequest: function (url, callback, options, postBody) {
+      callback(200, {}, '');
+      return undefined;
     }
   };
 

@@ -166,6 +166,13 @@ function runTag(opts) {
     JSON: JSON,
     getRemoteAddress: function () {
       return opts.ip;
+    },
+    encodeUriComponent: function (value) {
+      return encodeURIComponent(String(value));
+    },
+    sendHttpRequest: function (url, callback, options, postBody) {
+      callback(200, {}, '');
+      return undefined;
     }
   };
 
