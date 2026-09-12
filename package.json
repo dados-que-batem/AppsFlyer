@@ -9,10 +9,11 @@
     "url": "https://github.com/dados-que-batem/AppsFlyer.git"
   },
   "scripts": {
-    "test": "node tests/schemas/validate-schema.test.js && node tests/template/validate-template.test.js && node tests/core/identifiers.test.js",
+    "test": "npm run test:schema && npm run test:template && npm run test:core && npm run test:payload",
     "test:schema": "node tests/schemas/validate-schema.test.js",
     "test:template": "node tests/template/validate-template.test.js",
-    "test:core": "node tests/core/identifiers.test.js"
+    "test:core": "node tests/core/identifiers.test.js",
+    "test:payload": "node tests/core/build-payload.test.js"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

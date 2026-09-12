@@ -219,11 +219,15 @@ ___TEMPLATE_PARAMETERS___
 ___SANDBOXED_JS_FOR_SERVER___
 
 // Importações de APIs do Sandboxed JavaScript (sGTM)
+var JSON = require('JSON');
 var getAllEventData = require('getAllEventData');
+var getRemoteAddress = require('getRemoteAddress');
 var getRequestHeader = require('getRequestHeader');
-var makeString = require('makeString');
 var getType = require('getType');
 var logToConsole = require('logToConsole');
+var makeNumber = require('makeNumber');
+var makeString = require('makeString');
+var makeTableMap = require('makeTableMap');
 
 // ===== Utilitários de normalização (SDLC-3 / SPEC-S2S-V3) =====
 // Literais de regex são proibidos no Sandboxed JS: todas as validações
@@ -382,6 +386,216 @@ function firstNonEmpty() {
   return null;
 }
 
+// ===== Construtor de payload, serialização de eventValue e régua de 1KB (SDLC-4) =====
+var PAYLOAD_SIZE_LIMIT = 1024;
+
+// Cálculo determinístico de bytes UTF-8 compatível com a sandbox do GTM
+// (Buffer.byteLength não está disponível no Sandboxed JS).
+function utf8ByteLength(str) {
+  var s = makeString(str || '');
+  var bytes = 0;
+  for (var i = 0; i < s.length; i++) {
+    var code = s.charCodeAt(i);
+    if (code <= 0x7f) {
+      bytes += 1;
+    } else if (code <= 0x7ff) {
+      bytes += 2;
+    } else if (code >= 0xd800 && code <= 0xdbff) {
+      // Par de substitutos (surrogate pair) mapeia para 4 bytes
+      bytes += 4;
+      i++;
+    } else {
+      bytes += 3;
+    }
+  }
+  return bytes;
+}
+
+// Monta o objeto interno de valores e o serializa via JSON.stringify.
+// Sem receita nem parâmetros customizados, retorna estritamente "".
+function buildEventValue(revenue, currency, customParams) {
+  var hasValues = false;
+  var values = {};
+
+  if (revenue !== undefined && revenue !== null && revenue !== '') {
+    var revNum = makeNumber(revenue);
+    if (revNum !== null && !isNaN(revNum)) {
+      values.af_revenue = revNum;
+      hasValues = true;
+    }
+  }
+
+  if (currency && values.af_revenue !== undefined) {
+    values.af_currency = currency;
+    hasValues = true;
+  }
+
+  if (customParams) {
+    for (var key in customParams) {
+      if (key && customParams[key] !== undefined && customParams[key] !== null) {
+        values[key] = customParams[key];
+        hasValues = true;
+      }
+    }
+  }
+
+  if (!hasValues) {
+    return '';
+  }
+  return JSON.stringify(values);
+}
+
+// Valida código ISO 4217: exatamente 3 letras maiúsculas. Regex literal é
+// proibido no Sandboxed JS, portanto a checagem usa faixas de char codes.
+function resolveCurrency(value) {
+  var s = makeString(value || '').toUpperCase();
+  if (s.length !== 3) {
+    return null;
+  }
+  for (var i = 0; i < 3; i++) {
+    var code = s.charCodeAt(i);
+    if (code < 65 || code > 90) {
+      return null;
+    }
+  }
+  return s;
+}
+
+// Mapeia sharing_filter: "all" ou lista de redes separadas por vírgula.
+function resolveSharingFilter(value) {
+  var s = makeString(value || '').trim();
+  if (s === '') {
+    return null;
+  }
+  if (s.toLowerCase() === 'all') {
+    return 'all';
+  }
+  var networks = s.split(',');
+  var result = [];
+  for (var i = 0; i < networks.length; i++) {
+    var network = networks[i].trim();
+    if (network !== '') {
+      result.push(network);
+    }
+  }
+  if (result.length === 0) {
+    return null;
+  }
+  return result;
+}
+
+// Valida o formato UTC estrito yyyy-MM-dd HH:mm:ss.SSS.
+function isEventTimeUtc(value) {
+  var s = makeString(value || '');
+  if (s.length !== 23) {
+    return false;
+  }
+  if (s.charAt(4) !== '-' || s.charAt(7) !== '-' || s.charAt(10) !== ' ' || s.charAt(13) !== ':' || s.charAt(16) !== ':' || s.charAt(19) !== '.') {
+    return false;
+  }
+  var positions = [0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 21, 22];
+  for (var i = 0; i < positions.length; i++) {
+    var code = s.charCodeAt(positions[i]);
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isPlainObject(value) {
+  var type = getType(value);
+  return type === 'object' || type === 'map';
+}
+
+// Compila o payload com SOMENTE as chaves canônicas do schema (additionalProperties: false).
+function buildPayload(c) {
+  var p = {};
+  p.appsflyer_id = c.appsflyerId;
+  if (c.customerUserId) {
+    p.customer_user_id = c.customerUserId;
+  }
+  if (c.eventName) {
+    p.eventName = c.eventName;
+  }
+  if (c.eventCurrency) {
+    p.eventCurrency = c.eventCurrency;
+  }
+  p.eventValue = c.eventValue;
+  if (c.eventTime) {
+    p.eventTime = c.eventTime;
+  }
+  if (c.ip) {
+    p.ip = c.ip;
+  }
+  if (c.ua) {
+    p.ua = c.ua;
+  }
+  if (c.os) {
+    p.os = c.os;
+  }
+  if (c.bundleIdentifier) {
+    p.bundleIdentifier = c.bundleIdentifier;
+  }
+  if (c.appVersionName) {
+    p.app_version_name = c.appVersionName;
+  }
+  if (c.advertisingId) {
+    p.advertising_id = c.advertisingId;
+  }
+  if (c.idfa) {
+    p.idfa = c.idfa;
+  }
+  if (c.idfv) {
+    p.idfv = c.idfv;
+  }
+  if (c.sharingFilter !== undefined && c.sharingFilter !== null) {
+    p.sharing_filter = c.sharingFilter;
+  }
+  return p;
+}
+
+function eventValueHasKeys(ev) {
+  for (var key in ev) {
+    return true;
+  }
+  return false;
+}
+
+// Salvaguarda de 1KB: se o payload serializado exceder 1024 bytes, executa poda
+// seletiva dos parâmetros customizados supérfluos, preservando af_revenue e
+// af_currency. Se ainda exceder o limite, retorna null para abortar o despacho.
+function enforcePayloadLimit(payload) {
+  if (utf8ByteLength(JSON.stringify(payload)) <= PAYLOAD_SIZE_LIMIT) {
+    return payload;
+  }
+  var evRaw = payload.eventValue;
+  if (getType(evRaw) === 'string' && evRaw !== '') {
+    var ev = null;
+    try {
+      ev = JSON.parse(evRaw);
+    } catch (e) {
+      ev = null;
+    }
+    if (ev && isPlainObject(ev)) {
+      var removableKeys = [];
+      for (var key in ev) {
+        if (key !== 'af_revenue' && key !== 'af_currency') {
+          removableKeys.push(key);
+        }
+      }
+      for (var i = 0; i < removableKeys.length; i++) {
+        delete ev[removableKeys[i]];
+        payload.eventValue = eventValueHasKeys(ev) ? JSON.stringify(ev) : '';
+        if (utf8ByteLength(JSON.stringify(payload)) <= PAYLOAD_SIZE_LIMIT) {
+          return payload;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // ===== Fluxo principal do Core Engine (SDLC-3) =====
 var eventData = getAllEventData() || {};
 var resolvedPlatform = null;
@@ -461,10 +675,57 @@ if (!data.s2sToken) {
           idfv: idfv
         };
 
-        if (data.enableLogging) {
-          logToConsole('AppsFlyer Tag: normalizacao concluida (platform=' + resolvedPlatform + ', appId=' + appIdNormalized + ', appsflyer_id=' + appsflyerId + ').');
+        // ===== Compilação do payload S2S v3 (SDLC-4) =====
+        var customParams = null;
+        if (data.customParameters && getType(data.customParameters) === 'array') {
+          customParams = makeTableMap(data.customParameters, 'name', 'value');
         }
-        data.gtmOnSuccess();
+        var revenue = firstNonEmpty(data.revenue, eventData.revenue, eventData.value);
+        var currency = resolveCurrency(firstNonEmpty(data.currency, eventData.currency));
+        var eventValue = buildEventValue(revenue, currency, customParams);
+        var sharingFilter = resolveSharingFilter(firstNonEmpty(data.sharingFilter, eventData.sharing_filter));
+
+        var eventTime = firstNonEmpty(data.eventTime, eventData.event_time);
+        if (eventTime && !isEventTimeUtc(eventTime)) {
+          eventTime = null;
+        }
+        var bundleIdentifier = null;
+        var bundleCandidate = firstNonEmpty(eventData.bundle_identifier, eventData.bundleIdentifier);
+        if (bundleCandidate && isAndroidPackage(bundleCandidate)) {
+          bundleIdentifier = bundleCandidate;
+        }
+
+        var payload = buildPayload({
+          appsflyerId: appsflyerId,
+          customerUserId: customerUserId,
+          eventName: eventNameFinal,
+          eventCurrency: currency,
+          eventValue: eventValue,
+          eventTime: eventTime,
+          ip: getRemoteAddress(),
+          ua: getRequestHeader('user-agent'),
+          os: firstNonEmpty(eventData.os_version, eventData.os),
+          bundleIdentifier: bundleIdentifier,
+          appVersionName: firstNonEmpty(eventData.app_version_name, eventData.app_ver_name),
+          advertisingId: advertisingId,
+          idfa: idfa,
+          idfv: idfv,
+          sharingFilter: sharingFilter
+        });
+
+        payload = enforcePayloadLimit(payload);
+        if (!payload) {
+          logToConsole('AppsFlyer Tag Error: payload serializado excede 1024 bytes mesmo apos poda seletiva. Despacho abortado para prevenir erro 400 da API remota.');
+          data.gtmOnFailure();
+        } else {
+          context.payload = payload;
+          context.payloadBytes = utf8ByteLength(JSON.stringify(payload));
+          if (data.enableLogging) {
+            logToConsole('AppsFlyer Tag: normalizacao concluida (platform=' + resolvedPlatform + ', appId=' + appIdNormalized + ', appsflyer_id=' + appsflyerId + ').');
+            logToConsole('AppsFlyer Tag: payload compilado (' + context.payloadBytes + ' bytes).');
+          }
+          data.gtmOnSuccess();
+        }
       }
     }
   }
@@ -596,5 +857,6 @@ ___NOTES___
 
 Criado em 12/09/2026.
 SDLC-2 (Design): estrutura da interface do template (fields/parameters) e governança de permissões.
-A implementação detalhada do motor Sandboxed JS pertence às Issues #3, #4 e #5.
+SDLC-4 (Core Engine / Issue #4): motor de construção e serialização do payload S2S v3 (eventValue stringified), injeção de metadados de rede/hardware, mapeamento de sharing_filter e régua de salvaguarda de 1024 bytes com poda seletiva e bloqueio preventivo via gtmOnFailure. Payload exportado no contexto para consumo na Issue #5.
+A implementação do despacho assíncrono (sendHttpRequest) pertence à Issue #5.
 A bateria de testes nativos da aba ___TESTS___ pertence à Issue #6.

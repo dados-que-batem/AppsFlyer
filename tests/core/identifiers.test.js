@@ -109,6 +109,28 @@ function runTag(opts) {
     },
     logToConsole: function () {
       calls.logs.push(Array.prototype.slice.call(arguments).join(' '));
+    },
+    JSON: JSON,
+    makeNumber: function (value) {
+      if (value === undefined || value === null || value === '') {
+        return null;
+      }
+      var n = Number(value);
+      return isNaN(n) ? null : n;
+    },
+    makeTableMap: function (table, keyColumn, valueColumn) {
+      var map = {};
+      if (Array.isArray(table)) {
+        table.forEach(function (row) {
+          if (row && row[keyColumn] !== undefined && row[keyColumn] !== null && String(row[keyColumn]) !== '') {
+            map[String(row[keyColumn])] = row[valueColumn];
+          }
+        });
+      }
+      return map;
+    },
+    getRemoteAddress: function () {
+      return undefined;
     }
   };
 
