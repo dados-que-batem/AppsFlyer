@@ -935,7 +935,284 @@ ___SERVER_PERMISSIONS___
 
 ___TESTS___
 
-scenarios: []
+scenarios:
+- name: Sucesso Android padrao (URL sem prefixo id)
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    let capturedUrl = null;
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      capturedUrl = url;
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertThat(capturedUrl).isEqualTo('https://api3.appsflyer.com/inappevent/com.empresa.aplicacao');
+    assertApi('gtmOnSuccess').wasCalled();
+    assertApi('gtmOnFailure').wasNotCalled();
+
+- name: Sucesso iOS com injecao de prefixo id (id123456789)
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'ios',
+      appId: '123456789',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    let capturedUrl = null;
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      capturedUrl = url;
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertThat(capturedUrl).isEqualTo('https://api3.appsflyer.com/inappevent/id123456789');
+    assertApi('gtmOnSuccess').wasCalled();
+    assertApi('gtmOnFailure').wasNotCalled();
+
+- name: Sucesso com receita e moeda (af_revenue/af_currency serializados)
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      revenue: 49.9,
+      currency: 'BRL',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    let capturedBody = null;
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      capturedBody = body;
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertThat(capturedBody).contains('"af_revenue":49.9');
+    assertThat(capturedBody).contains('"af_currency":"BRL"');
+    assertApi('gtmOnSuccess').wasCalled();
+
+- name: Appsflyer ID ausente bloqueia sem trafego de rede
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertApi('sendHttpRequest').wasNotCalled();
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: Erro remoto 400 (Bad Request) dispara gtmOnFailure
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(400, {}, '{"error":"bad_request"}');
+    });
+
+    runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: Erro remoto 401 (Unauthorized) dispara gtmOnFailure
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(401, {}, '{"error":"unauthorized"}');
+    });
+
+    runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: Erro remoto 403 (Forbidden / plano S2S) dispara gtmOnFailure
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(403, {}, '{"error":"forbidden"}');
+    });
+
+    runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: Erro remoto 500 (Internal Server Error) dispara gtmOnFailure
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(500, {}, '{"error":"internal_error"}');
+    });
+
+    runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: ATT denied suprime idfa do payload (conformidade de privacidade)
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'ios',
+      appId: '123456789',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('getAllEventData', () => ({
+      idfa: 'EA7583CD-A667-48BC-B806-42ECB2B48D12',
+      att_status: 'denied',
+      os_version: '17.4',
+      device_model: 'iPhone15,3'
+    }));
+
+    let capturedBody = null;
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      capturedBody = body;
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertThat(capturedBody).notContains('"idfa"');
+    assertApi('gtmOnSuccess').wasCalled();
+
+- name: ATT authorized mantem idfa no payload
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'ios',
+      appId: '123456789',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('getAllEventData', () => ({
+      idfa: 'EA7583CD-A667-48BC-B806-42ECB2B48D12',
+      att_status: 'authorized',
+      os_version: '17.4',
+      device_model: 'iPhone15,3'
+    }));
+
+    let capturedBody = null;
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      capturedBody = body;
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertThat(capturedBody).contains('"idfa"');
+    assertApi('gtmOnSuccess').wasCalled();
+
+- name: Timeout de rede (4000ms) dispara gtmOnFailure
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      return Promise.reject(new Error('network timeout'));
+    });
+
+    await runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+
+- name: Salvaguarda de 1KB bloqueia payload acima de 1024 bytes
+  code: |
+    const mockData = {
+      s2sToken: 'mock_s2s_token',
+      platform: 'android',
+      appId: 'com.empresa.aplicacao',
+      eventName: 'af_purchase',
+      appsflyerId: '1617274484000-5786735',
+      gtmOnSuccess: () => {},
+      gtmOnFailure: () => {}
+    };
+
+    const bigUserAgent = 'Mozilla/' + new Array(2100).join('x');
+    mock('getRequestHeader', (name) => {
+      if (String(name).toLowerCase() === 'user-agent') {
+        return bigUserAgent;
+      }
+      return undefined;
+    });
+
+    mock('sendHttpRequest', (url, callback, options, body) => {
+      callback(200, {}, '{"status":"ok"}');
+    });
+
+    runCode(mockData);
+    assertApi('sendHttpRequest').wasNotCalled();
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
 
 
 ___NOTES___
@@ -944,4 +1221,4 @@ Criado em 12/09/2026.
 SDLC-2 (Design): estrutura da interface do template (fields/parameters) e governança de permissões.
 SDLC-4 (Core Engine / Issue #4): motor de construção e serialização do payload S2S v3 (eventValue stringified), injeção de metadados de rede/hardware, mapeamento de sharing_filter e régua de salvaguarda de 1024 bytes com poda seletiva e bloqueio preventivo via gtmOnFailure. Payload exportado no contexto para consumo na Issue #5.
 SDLC-5 (Core Engine / Issue #5): camada de egress de rede ativa no sandbox — sendHttpRequest para https://api3.appsflyer.com/inappevent/{appId} (POST, Content-Type/Accept application/json, header authentication com o S2S Token, timeout de 4000ms) com suporte a runtime de callback e Promise, guarda de idempotência (dispatchCompleted) e matriz de tratamento de respostas: 2xx → gtmOnSuccess; 400/401/403/5xx e timeout/erro de rede → gtmOnFailure com diagnóstico no log.
-A bateria de testes nativos da aba ___TESTS___ pertence à Issue #6.
+SDLC-6 (QA / Issue #6): bateria oficial de 12 cenários de teste nativos na aba ___TESTS___ (runCode/mock/assertThat/assertApi) cobrindo sucesso Android/iOS (URL), receita+moeda, bloqueio prévio (appsflyer_id ausente e 1KB), erros remotos 400/401/403/500, conformidade ATT (idfa) e timeout de rede.
