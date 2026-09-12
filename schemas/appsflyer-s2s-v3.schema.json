@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/dados-que-batem/AppsFlyer/schemas/appsflyer-s2s-v3.schema.json",
+  "title": "AppsFlyer S2S Events API v3 - In-App Event Payload",
+  "description": "Schema canonico do payload de eventos in-app para a rota POST https://api3.appsflyer.com/inappevent/{app_id} da API Server-to-Server v3 do AppsFlyer. Requisitos: raiz estritamente object (batching proibido), eventValue obrigatoriamente JSON stringified ou string vazia, eventTime no formato UTC estrito yyyy-MM-dd HH:mm:ss.SSS, payload <= 1024 bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "iosAppId": {
+      "type": "string",
+      "pattern": "^id[0-9]+$",
+      "description": "App ID iOS com prefixo 'id' compulsorio (ex: id123456789)."
+    },
+    "androidPackageName": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$",
+      "description": "Namespace de pacote Android em formato reverse-domain (ex: com.empresa.aplicacao)."
+    },
+    "appsflyerId": {
+      "type": "string",
+      "pattern": "^\\d{13}-\\d{1,19}$",
+      "description": "AppsFlyer ID gerado pelo SDK: 13 digitos (timestamp), traco e 1 a 19 digitos (ex: 1617274484000-5786735)."
+    },
+    "eventTimeUtc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}$",
+      "description": "Timestamp UTC estrito no formato yyyy-MM-dd HH:mm:ss.SSS."
+    },
+    "eventCurrencyIso4217": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "Codigo de moeda ISO 4217 de 3 letras (ex: USD, BRL, EUR)."
+    }
+  },
+  "properties": {
+    "appsflyer_id": {
+      "$ref": "#/definitions/appsflyerId"
+    },
+    "eventName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "eventValue": {
+      "type": "string",
+      "minLength": 0,
+      "contentMediaType": "application/json",
+      "description": "JSON stringified (ex: \"{\\\"af_revenue\\\": 29.99}\") ou string vazia \"\". Nunca objeto JSON cru."
+    },
+    "eventTime": {
+      "$ref": "#/definitions/eventTimeUtc"
+    },
+    "eventCurrency": {
+      "$ref": "#/definitions/eventCurrencyIso4217"
+    },
+    "customer_user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ip": {
+      "type": "string",
+      "oneOf": [
+        { "format": "ipv4" },
+        { "format": "ipv6" }
+      ],
+      "description": "Endereco IPv4 ou IPv6 do dispositivo de origem."
+    },
+    "ua": {
+      "type": "string",
+      "minLength": 1
+    },
+    "os": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Versao do sistema operacional (ex: 17.4)."
+    },
+    "bundleIdentifier": {
+      "$ref": "#/definitions/androidPackageName"
+    },
+    "app_version_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "advertising_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Google Advertising ID (GAID) para Android."
+    },
+    "idfa": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier for Advertisers (iOS), condicionado ao consentimento ATT."
+    },
+    "idfv": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier for Vendors (iOS)."
+    },
+    "sharing_filter": {
+      "anyOf": [
+        {
+          "const": "all",
+          "description": "Nao repassar o evento a nenhuma rede integrada."
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Lista de redes autorizadas/bloqueadas (ex: [\"google_ads\", \"facebook\"])."
+        }
+      ]
+    }
+  },
+  "required": ["appsflyer_id", "eventName", "eventValue"]
+}

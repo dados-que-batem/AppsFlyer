@@ -1,0 +1,19 @@
+{
+  "name": "gtm-serverside-appsflyer-inapp-tag",
+  "version": "1.0.0",
+  "description": "Tag AppsFlyer S2S (API v3) para Google Tag Manager Server-Side - especificacao, schemas e testes de validacao",
+  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dados-que-batem/AppsFlyer.git"
+  },
+  "scripts": {
+    "test": "node tests/schemas/validate-schema.test.js",
+    "test:schema": "node tests/schemas/validate-schema.test.js"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^2.1.1"
+  }
+}
