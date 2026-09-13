@@ -857,7 +857,7 @@ ___SERVER_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "https://api3.appsflyer.com/*"
+                "string": "https://api3.appsflyer.com/"
               }
             ]
           }
@@ -897,6 +897,13 @@ ___SERVER_PERMISSIONS___
         "versionId": "1"
       },
       "param": [
+        {
+          "key": "headersAllowed",
+          "value": {
+            "type": 8,
+            "boolean": true
+          }
+        },
         {
           "key": "requestAccess",
           "value": {

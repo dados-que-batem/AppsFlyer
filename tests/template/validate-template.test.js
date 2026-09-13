@@ -240,7 +240,7 @@ test('send_http confinado estritamente a https://api3.appsflyer.com/*', () => {
   const urlsParam = (sendHttpPerm.instance.param || []).find(param => param.key === 'urls');
   assert(urlsParam, 'send_http deve possuir parâmetro "urls"');
   const urls = (urlsParam.value.listItem || []).map(item => item.string);
-  assert(urls.includes('https://api3.appsflyer.com/*'), 'send_http deve autorizar https://api3.appsflyer.com/*');
+  assert(urls.includes('https://api3.appsflyer.com/'), 'send_http deve autorizar https://api3.appsflyer.com/');
   urls.forEach(u => {
     assert(!u.includes('*://') && u !== '*', 'send_http não deve conter URLs curinga não autorizadas: ' + u);
   });
