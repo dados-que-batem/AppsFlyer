@@ -18,6 +18,11 @@ ___INFO___
     "CONVERSIONS",
     "ANALYTICS"
   ],
+  "brand": {
+    "id": "brand_dummy",
+    "displayName": "AppsFlyer",
+    "thumbnail": ""
+  },
   "description": "Envia eventos in-app do lado do servidor para a API Server-to-Server (S2S v3) do AppsFlyer via contêiner sGTM com governança de privacidade e ATT.",
   "containerContexts": [
     "SERVER"
