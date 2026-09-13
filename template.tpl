@@ -409,11 +409,11 @@ function utf8ByteLength(str) {
   var bytes = 0;
   for (var i = 0; i < s.length; i++) {
     var code = s.charCodeAt(i);
-    if (code <= 0x7f) {
+    if (code <= 127) {
       bytes += 1;
-    } else if (code <= 0x7ff) {
+    } else if (code <= 2047) {
       bytes += 2;
-    } else if (code >= 0xd800 && code <= 0xdbff) {
+    } else if (code >= 55296 && code <= 56319) {
       // Par de substitutos (surrogate pair) mapeia para 4 bytes
       bytes += 4;
       i++;
