@@ -444,7 +444,7 @@ function buildEventValue(revenue, currency, customParams) {
 
   if (revenue !== undefined && revenue !== null && revenue !== '') {
     var revNum = makeNumber(revenue);
-    if (revNum !== null && !isNaN(revNum)) {
+    if (revNum !== null && revNum === revNum) {
       values.af_revenue = revNum;
       hasValues = true;
     }
@@ -685,7 +685,7 @@ function handleResponse(statusCode, headers, body) {
     return;
   }
   var status = makeNumber(statusCode);
-  if (isNaN(status)) {
+  if (status === null || status !== status) {
     completeDispatch(false, true, 'Resposta de rede vazia ou invalida (statusCode invalido).');
     return;
   }
