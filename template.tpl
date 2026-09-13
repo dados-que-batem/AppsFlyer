@@ -14,14 +14,9 @@ ___INFO___
   "version": 1,
   "securityGroups": [],
   "displayName": "AppsFlyer In-App Events (Server-Side)",
-  "categories": [
-    "CONVERSIONS",
-    "ANALYTICS"
-  ],
   "brand": {
     "id": "brand_dummy",
-    "displayName": "AppsFlyer",
-    "thumbnail": ""
+    "displayName": ""
   },
   "description": "Envia eventos in-app do lado do servidor para a API Server-to-Server (S2S v3) do AppsFlyer via contêiner sGTM com governança de privacidade e ATT.",
   "containerContexts": [
@@ -963,8 +958,7 @@ scenarios: []
 
 ___NOTES___
 
-Criado em 12/09/2026.
-SDLC-2 (Design): estrutura da interface do template (fields/parameters) e governança de permissões.
-SDLC-4 (Core Engine / Issue #4): motor de construção e serialização do payload S2S v3 (eventValue stringified), injeção de metadados de rede/hardware, mapeamento de sharing_filter e régua de salvaguarda de 1024 bytes com poda seletiva e bloqueio preventivo via gtmOnFailure. Payload exportado no contexto para consumo na Issue #5.
-SDLC-5 (Core Engine / Issue #5): camada de egress de rede ativa no sandbox — sendHttpRequest para https://api3.appsflyer.com/inappevent/{appId} (POST, Content-Type/Accept application/json, header authentication com o S2S Token, timeout de 4000ms) com suporte a runtime de callback e Promise, guarda de idempotência (dispatchCompleted) e matriz de tratamento de respostas: 2xx → gtmOnSuccess; 400/401/403/5xx e timeout/erro de rede → gtmOnFailure com diagnóstico no log.
-SDLC-6 (QA / Issue #6): bateria oficial de 12 cenários de teste nativos na aba ___TESTS___ (runCode/mock/assertThat/assertApi) cobrindo sucesso Android/iOS (URL), receita+moeda, bloqueio prévio (appsflyer_id ausente e 1KB), erros remotos 400/401/403/500, conformidade ATT (idfa) e timeout de rede.
+Created on 12/09/2026, 21:47:59
+
+
+
