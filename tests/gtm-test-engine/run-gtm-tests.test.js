@@ -41,7 +41,14 @@ function extractTestsSection(content) {
   if (end === -1) {
     throw new Error('Delimitador ' + endMarker + ' nao encontrado no template');
   }
-  return content.slice(start + '___TESTS___'.length, end);
+  const section = content.slice(start + '___TESTS___'.length, end).trim();
+  if (section === 'scenarios: []' || section === 'scenarios:') {
+    const yamlPath = path.join(__dirname, 'gtm-scenarios.yaml');
+    if (fs.existsSync(yamlPath)) {
+      return fs.readFileSync(yamlPath, 'utf8');
+    }
+  }
+  return section;
 }
 
 function parseScenarios(section) {

@@ -119,7 +119,11 @@ function runTag(opts) {
   const headers = opts.headers || {};
   const mocks = {
     getAllEventData: function () {
-      return opts.eventData || {};
+      const ed = Object.assign({}, opts.eventData || {});
+      if (opts.ip && !ed.ip_override && !ed.client_ip_address) {
+        ed.ip_override = opts.ip;
+      }
+      return ed;
     },
     getRequestHeader: function (name) {
       for (const key of Object.keys(headers)) {
