@@ -1,5 +1,5 @@
 homepage: 'https://dadosquebatem.com.br/'
 documentation: 'https://github.com/dados-que-batem/AppsFlyer'
 versions:
-  - sha: 31be61294ae5d444a62b60e3b3b96466fe7d8fc9
+  - sha: de14035354628d40a0fe16cc37a8954b9068fa21
     changeNotes: Release inicial da Tag Server-Side AppsFlyer S2S v3.
