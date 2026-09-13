@@ -170,6 +170,7 @@ function runTag(opts) {
       return map;
     },
     JSON: JSON,
+    Object: Object,
     getRemoteAddress: function () {
       return opts.ip;
     },

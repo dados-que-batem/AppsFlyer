@@ -232,6 +232,7 @@ ___SANDBOXED_JS_FOR_SERVER___
 
 // Importações de APIs do Sandboxed JavaScript (sGTM)
 var JSON = require('JSON');
+var Object = require('Object');
 var encodeUriComponent = require('encodeUriComponent');
 var getAllEventData = require('getAllEventData');
 var getRequestHeader = require('getRequestHeader');
@@ -382,18 +383,29 @@ function resolveAttConsent(eventData) {
   return false;
 }
 
-function firstNonEmpty() {
-  for (var i = 0; i < arguments.length; i++) {
-    var val = arguments[i];
-    if (val === undefined || val === null) {
-      continue;
+function firstNonEmpty(a, b, c, d) {
+  if (a !== undefined && a !== null) {
+    var sa = makeString(a);
+    if (sa.length > 0) {
+      return sa;
     }
-    var type = getType(val);
-    if (type === 'string' || type === 'number') {
-      var s = makeString(val);
-      if (s.length > 0) {
-        return s;
-      }
+  }
+  if (b !== undefined && b !== null) {
+    var sb = makeString(b);
+    if (sb.length > 0) {
+      return sb;
+    }
+  }
+  if (c !== undefined && c !== null) {
+    var sc = makeString(c);
+    if (sc.length > 0) {
+      return sc;
+    }
+  }
+  if (d !== undefined && d !== null) {
+    var sd = makeString(d);
+    if (sd.length > 0) {
+      return sd;
     }
   }
   return null;
@@ -444,10 +456,23 @@ function buildEventValue(revenue, currency, customParams) {
   }
 
   if (customParams) {
-    for (var key in customParams) {
-      if (key && customParams[key] !== undefined && customParams[key] !== null) {
-        values[key] = customParams[key];
-        hasValues = true;
+    var cpType = getType(customParams);
+    if (cpType === 'array') {
+      for (var i = 0; i < customParams.length; i++) {
+        var row = customParams[i];
+        if (row && row.name !== undefined && row.name !== null && row.name !== '') {
+          values[makeString(row.name)] = row.value;
+          hasValues = true;
+        }
+      }
+    } else if (cpType === 'object' || cpType === 'map') {
+      var cpKeys = Object.keys(customParams);
+      for (var j = 0; j < cpKeys.length; j++) {
+        var key = cpKeys[j];
+        if (key && customParams[key] !== undefined && customParams[key] !== null) {
+          values[key] = customParams[key];
+          hasValues = true;
+        }
       }
     }
   }
@@ -568,11 +593,33 @@ function buildPayload(c) {
   return p;
 }
 
-function eventValueHasKeys(ev) {
-  for (var key in ev) {
-    return true;
+function rebuildEventValueExcluding(ev, excludedKeys) {
+  var result = {};
+  var keys = Object.keys(ev);
+  var count = 0;
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var excluded = false;
+    for (var j = 0; j < excludedKeys.length; j++) {
+      if (excludedKeys[j] === k) {
+        excluded = true;
+        break;
+      }
+    }
+    if (!excluded) {
+      result[k] = ev[k];
+      count++;
+    }
   }
-  return false;
+  return count > 0 ? result : null;
+}
+
+function eventValueHasKeys(ev) {
+  if (!ev) {
+    return false;
+  }
+  var keys = Object.keys(ev);
+  return keys.length > 0;
 }
 
 // Salvaguarda de 1KB: se o payload serializado exceder 1024 bytes, executa poda
@@ -584,22 +631,21 @@ function enforcePayloadLimit(payload) {
   }
   var evRaw = payload.eventValue;
   if (getType(evRaw) === 'string' && evRaw !== '') {
-    var ev = null;
-    try {
-      ev = JSON.parse(evRaw);
-    } catch (e) {
-      ev = null;
-    }
+    var ev = JSON.parse(evRaw);
     if (ev && isPlainObject(ev)) {
+      var allKeys = Object.keys(ev);
       var removableKeys = [];
-      for (var key in ev) {
+      for (var i = 0; i < allKeys.length; i++) {
+        var key = allKeys[i];
         if (key !== 'af_revenue' && key !== 'af_currency') {
           removableKeys.push(key);
         }
       }
-      for (var i = 0; i < removableKeys.length; i++) {
-        delete ev[removableKeys[i]];
-        payload.eventValue = eventValueHasKeys(ev) ? JSON.stringify(ev) : '';
+      var excluded = [];
+      for (var j = 0; j < removableKeys.length; j++) {
+        excluded.push(removableKeys[j]);
+        var prunedEv = rebuildEventValueExcluding(ev, excluded);
+        payload.eventValue = prunedEv ? JSON.stringify(prunedEv) : '';
         if (utf8ByteLength(JSON.stringify(payload)) <= PAYLOAD_SIZE_LIMIT) {
           return payload;
         }
@@ -803,23 +849,20 @@ if (!data.s2sToken) {
             logToConsole('AppsFlyer Tag: despachando POST ' + dispatchUrl + ' (' + context.payloadBytes + ' bytes).');
           }
 
-          try {
-            var responsePromise = sendHttpRequest(dispatchUrl, function (statusCode, headers, body) {
-              handleResponse(statusCode, headers, body);
-            }, requestOptions, postBody);
-            if (responsePromise && getType(responsePromise.then) === 'function') {
-              responsePromise.then(function (result) {
-                if (result && getType(result.statusCode) === 'number') {
-                  handleResponse(result.statusCode, result.headers, result.body);
-                } else {
-                  handleNetworkError();
-                }
-              }).catch(function () {
+          var responsePromise = sendHttpRequest(dispatchUrl, function (statusCode, headers, body) {
+            handleResponse(statusCode, headers, body);
+          }, requestOptions, postBody);
+
+          if (responsePromise && getType(responsePromise.then) === 'function') {
+            responsePromise.then(function (result) {
+              if (result && getType(result.statusCode) === 'number') {
+                handleResponse(result.statusCode, result.headers, result.body);
+              } else {
                 handleNetworkError();
-              });
-            }
-          } catch (err) {
-            handleNetworkError();
+              }
+            }, function () {
+              handleNetworkError();
+            });
           }
         }
       }

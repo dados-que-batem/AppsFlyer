@@ -170,6 +170,7 @@ async function runScenario(templateJs, scenario) {
       return map;
     },
     JSON: JSON,
+    Object: Object,
     sendHttpRequest: function () { return null; }
   };
 

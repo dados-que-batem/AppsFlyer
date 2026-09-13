@@ -113,6 +113,7 @@ function runTag(opts) {
       calls.logs.push(Array.prototype.slice.call(arguments).join(' '));
     },
     JSON: JSON,
+    Object: Object,
     makeNumber: function (value) {
       if (value === undefined || value === null || value === '') {
         return null;
