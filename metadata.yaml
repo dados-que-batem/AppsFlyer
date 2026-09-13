@@ -1,5 +1,5 @@
-homepage: "https://github.com/dados-que-batem/AppsFlyer"
-documentation: "https://github.com/dados-que-batem/AppsFlyer/blob/main/README.md"
+homepage: 'https://github.com/dados-que-batem/AppsFlyer'
+documentation: 'https://github.com/dados-que-batem/AppsFlyer'
 versions:
-  - sha: "76003a2c966111f06da26fafef7a3147b4ba4711"
-    changeNotes: "Versão 1.0.0: Release oficial da Tag Server-Side AppsFlyer S2S v3 com governança ATT, salvaguarda de 1KB e bateria de testes nativos."
+  - sha: c113c8becab9e0de69de6186491c382166822750
+    changeNotes: Release inicial da Tag Server-Side AppsFlyer S2S v3.
