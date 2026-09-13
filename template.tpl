@@ -31,7 +31,7 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "groupAuthDestination",
-    "displayName": "Autenticação & Destino",
+    "displayName": "Autenticação \u0026 Destino",
     "groupStyle": "ZIPPY_OPEN",
     "subParams": [
       {
@@ -75,7 +75,7 @@ ___TEMPLATE_PARAMETERS___
         "displayName": "Application ID",
         "simpleValueType": true,
         "valueHint": "id123456789 ou com.empresa.app",
-        "help": "Identificador da aplicação. No iOS o prefixo 'id' é obrigatório (ex: id123456789); no Android, o nome de pacote em reverse-domain (ex: com.empresa.app).",
+        "help": "Identificador da aplicação. No iOS o prefixo \u0027id\u0027 é obrigatório (ex: id123456789); no Android, o nome de pacote em reverse-domain (ex: com.empresa.app).",
         "valueValidators": [
           {
             "type": "NON_EMPTY"
@@ -132,7 +132,7 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "groupEventData",
-    "displayName": "Dados do Evento & Receita",
+    "displayName": "Dados do Evento \u0026 Receita",
     "groupStyle": "ZIPPY_OPEN",
     "subParams": [
       {
@@ -188,7 +188,7 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "groupPrivacyAtt",
-    "displayName": "Privacidade, ATT & Governança",
+    "displayName": "Privacidade, ATT \u0026 Governança",
     "groupStyle": "ZIPPY_CLOSED",
     "subParams": [
       {
@@ -213,7 +213,7 @@ ___TEMPLATE_PARAMETERS___
         "displayName": "Filtro de Compartilhamento (sharing_filter)",
         "simpleValueType": true,
         "valueHint": "all ou facebook,google_ads",
-        "help": "Informe 'all' para suprimir postbacks de todas as redes, ou lista de redes separadas por vírgula."
+        "help": "Informe \u0027all\u0027 para suprimir postbacks de todas as redes, ou lista de redes separadas por vírgula."
       },
       {
         "type": "CHECKBOX",
@@ -936,13 +936,6 @@ ___SERVER_PERMISSIONS___
       },
       "param": [
         {
-          "key": "headersAllowed",
-          "value": {
-            "type": 8,
-            "boolean": true
-          }
-        },
-        {
           "key": "requestAccess",
           "value": {
             "type": 1,
@@ -1002,6 +995,5 @@ scenarios: []
 ___NOTES___
 
 Created on 12/09/2026, 21:47:59
-
 
 
