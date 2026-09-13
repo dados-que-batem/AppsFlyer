@@ -13,10 +13,10 @@ ___INFO___
   "id": "cvt_temp_public_id",
   "version": 1,
   "securityGroups": [],
-  "displayName": "AppsFlyer In-App Events (Server-Side)",
+  "displayName": "AppsFlyer In-App Events",
   "brand": {
-    "id": "brand_dummy",
-    "displayName": ""
+    "id": "github.com_dados-que-batem",
+    "displayName": "dados-que-batem"
   },
   "description": "Envia eventos in-app do lado do servidor para a API Server-to-Server (S2S v3) do AppsFlyer via contêiner sGTM com governança de privacidade e ATT.",
   "containerContexts": [

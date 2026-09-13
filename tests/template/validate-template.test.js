@@ -111,7 +111,7 @@ test('___INFO___ é JSON válido e com contrato correto', () => {
   assert(typeof info === 'object' && info !== null, '___INFO___ deve ser um objeto JSON');
   assert(info.type === 'TAG', '___INFO___ type deve ser TAG');
   assert(Array.isArray(info.containerContexts) && info.containerContexts.includes('SERVER'), '___INFO___ deve ter containerContexts contendo SERVER');
-  assert(info.displayName === 'AppsFlyer In-App Events (Server-Side)', 'displayName deve ser "AppsFlyer In-App Events (Server-Side)"');
+  assert(info.displayName === 'AppsFlyer In-App Events', 'displayName deve ser "AppsFlyer In-App Events"');
   assert(typeof info.description === 'string' && info.description.length > 0, 'description não deve estar vazio');
   assert(info.containerContexts.length === 1 && info.containerContexts[0] === 'SERVER', 'containerContexts deve conter exclusivamente SERVER');
 });
